@@ -8,4 +8,7 @@ Route::prefix('members')->group(function () {
     Route::get('/{member}', [MemberController::class, 'show']);
     Route::patch('/{member}', [MemberController::class, 'update']);
     Route::delete('/{member}', [MemberController::class, 'destroy']);
+
+    Route::post('/{member}/image/upload', [MemberController::class, 'uploadImage']);
+    Route::post('/{member}/image/delete', [MemberController::class, 'deleteImage']);
 });

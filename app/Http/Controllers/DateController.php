@@ -13,7 +13,7 @@ class DateController extends Controller
     public function index()
     {
         $dates = Date::all();
-        return DateResource::collection($dates)->resolve();
+        return DateResource::collection($dates);
     }
 
     public function store(StoreRequest $request)
@@ -21,29 +21,26 @@ class DateController extends Controller
         $data = $request->validated();
         $date = Date::create($data);
 
-        return DateResource::make($date)->resolve();
+        return DateResource::make($date);
     }
 
     public function show(Date $date)
     {
-        return DateResource::make($date)->resolve();
+        return DateResource::make($date);
     }
 
     public function update(UpdateRequest $request, Date $date)
     {
         $data = $request->validated();
         $date->update($data);
-        $date->fresh();
 
-        return DateResource::make($date)->resolve();
+        return DateResource::make($date->refresh());
     }
 
     public function destroy(Date $date)
     {
-        Date::delete($date);
+        $date->delete();
 
-        return response()->json([
-           'message' => 'date was deleted!'
-        ]);
+        return response()->noContent();
     }
 }

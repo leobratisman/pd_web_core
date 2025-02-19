@@ -8,4 +8,7 @@ Route::prefix('posts')->group(function () {
     Route::get('/{post}', [PostController::class, 'show']);
     Route::patch('/{post}', [PostController::class, 'update']);
     Route::delete('/{post}', [PostController::class, 'destroy']);
+
+    Route::post('/{post}/image/upload', [PostController::class, 'uploadImage']);
+    Route::post('/{post}/image/delete', [PostController::class, 'deleteImage']);
 });
