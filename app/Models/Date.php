@@ -10,6 +10,8 @@ class Date extends Model
 {
     use HasFactory;
 
+    public static $snakeAttributes = true;
+
     protected $table = 'dates';
     protected $guarded = false;
 

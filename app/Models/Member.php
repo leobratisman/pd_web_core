@@ -9,6 +9,8 @@ class Member extends Model
 {
     use HasFactory;
 
+    public static $snakeAttributes = true;
+
     protected $table = 'members';
     protected $guarded = false;
 

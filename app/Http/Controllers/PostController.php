@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\S3ConnectionException;
 use App\Http\Requests\Post\StoreRequest;
 use App\Http\Requests\Post\UpdateRequest;
 use App\Http\Requests\UploadImageRequest;
 use App\Http\Resources\PostResource;
 use App\Models\Post;
+use App\Services\PostService;
 use App\Services\S3\S3ImageService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
@@ -42,40 +43,36 @@ class PostController extends Controller
 
     public function destroy(Post $post)
     {
+        $this->deleteImage($post);
         $post->delete();
+
         return response()->noContent();
     }
 
-    public function uploadImage(UploadImageRequest $request, Post $post)
+    public function uploadImage(
+        UploadImageRequest $request,
+        Post $post,
+        PostService $postService
+    )
     {
+        $data = $request->validated();
         if (!is_null($post->image_id)) {
             $this->deleteImage($post);
         }
-        $uuid = Str::uuid();
-        $image = $request->file('image');
 
-        try {
-            S3ImageService::uploadFile(fileId: $uuid, file: $image);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to upload image'
-            ], 500);
-        }
-
-        $post->update([
-            'image_id' => $uuid
-        ]);
-        $post->refresh();
+        $postService->uploadImage(file: $data['image'], post: $post);
     }
 
     public function deleteImage(Post $post)
     {
-        if (!$post->image_id) {
+        try {
+            S3ImageService::deleteFile(fileId: $post->image_id);
+        } catch (S3ConnectionException $e) {
             return response()->json([
-                'message' => 'Nothing to delete'
-            ], 404);
+                'message' => $e->getMessage()
+            ], $e->getCode());
         }
-        S3ImageService::deleteFile(fileId: $post->image_id);
+
         $post->update([
             'image_id' => null
         ]);

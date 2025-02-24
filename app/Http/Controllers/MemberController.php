@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\S3ConnectionException;
 use App\Http\Requests\Member\StoreRequest;
 use App\Http\Requests\Member\UpdateRequest;
 use App\Http\Requests\UploadImageRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Member;
+use App\Services\MemberService;
 use App\Services\S3\S3ImageService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class MemberController extends Controller
 {
@@ -42,41 +43,36 @@ class MemberController extends Controller
 
     public function destroy(Member $member)
     {
+        $this->deleteImage($member);
         $member->delete();
 
         return response()->noContent();
     }
 
-    public function uploadImage(UploadImageRequest $request, Member $member)
+    public function uploadImage(
+        UploadImageRequest $request,
+        Member $member,
+        MemberService $memberService
+    )
     {
+        $data = $request->validated();
         if (!is_null($member->image_id)) {
             $this->deleteImage($member);
         }
-        $uuid = Str::uuid();
-        $image = $request->file('image');
 
-        try {
-            S3ImageService::uploadFile(fileId: $uuid, file: $image);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to upload image'
-            ], 500);
-        }
-
-        $member->update([
-            'image_id' => $uuid
-        ]);
-        $member->refresh();
+        $memberService->uploadImage(file: $data['image'], member: $member);
     }
 
     public function deleteImage(Member $member)
     {
-        if (!$member->image_id) {
+        try {
+            S3ImageService::deleteFile(fileId: $member->image_id);
+        } catch (S3ConnectionException $e) {
             return response()->json([
-                'message' => 'Nothing to delete'
-            ], 404);
+                'message' => $e->getMessage()
+            ], $e->getCode());
         }
-        S3ImageService::deleteFile(fileId: $member->image_id);
+
         $member->update([
             'image_id' => null
         ]);
